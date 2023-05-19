@@ -46,7 +46,7 @@ datasets:
 # network structures
 network_g:
   type: RRDBNet
-  num_in_ch: 18
+  num_in_ch: 3
   num_out_ch: 3
   num_feat: 64
   num_block: 23

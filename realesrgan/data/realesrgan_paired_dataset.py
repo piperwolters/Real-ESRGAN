@@ -63,7 +63,7 @@ class RealESRGANPairedDataset(data.Dataset):
         dataroot = '/data/piperw/first_ten_million/'
         datatype = 's2'
         self.datatype = datatype
-        self.n_s2_images = 6 #n_s2_images
+        self.n_s2_images = 1 #n_s2_images
         self.output_size = 512 #output_size
         self.max_tiles = -1 #max_tiles
         specify_val = True
