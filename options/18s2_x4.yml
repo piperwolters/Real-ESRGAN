@@ -23,14 +23,14 @@ datasets:
     io_backend:
       type: disk
 
-    gt_size: 512
+    gt_size: 64
     use_hflip: True
     use_rot: False
 
     # data loader
     use_shuffle: true
     num_worker_per_gpu: 5
-    batch_size_per_gpu: 1
+    batch_size_per_gpu: 4
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
@@ -46,7 +46,7 @@ datasets:
 # network structures
 network_g:
   type: RRDBNet
-  num_in_ch: 3
+  num_in_ch: 18
   num_out_ch: 3
   num_feat: 64
   num_block: 23
