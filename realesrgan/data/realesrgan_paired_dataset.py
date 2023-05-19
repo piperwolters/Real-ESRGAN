@@ -60,7 +60,7 @@ class RealESRGANPairedDataset(data.Dataset):
         # Adding code here to deal with specific satellite imagery input. 
         # Uncomment below code if you want to run original code / dataset structure.
 
-        dataroot = '/data/first_ten_million/'
+        dataroot = '/data/piperw/first_ten_million/'
         datatype = 's2'
         self.datatype = datatype
         self.n_s2_images = 18 #n_s2_images

@@ -17,8 +17,8 @@ datasets:
   train:
     name: 18S2-NAIP
     type: RealESRGANPairedDataset
-    dataroot_gt: /data/first_ten_million/naip
-    dataroot_lq: /data/first_ten_million/s2_condensed
+    dataroot_gt: /data/piperw/first_ten_million/naip
+    dataroot_lq: /data/piperw/first_ten_million/s2_condensed
     meta_info: /data/Real-ESRGAN_data/metadata/naip_meta_info.txt 
     io_backend:
       type: disk
