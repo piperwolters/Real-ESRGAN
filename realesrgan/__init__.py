@@ -1,6 +1,6 @@
 # flake8: noqa
-from .archs import *
+from realesrgan.archs import *
 from .data import *
 from .models import *
 from .utils import *
-from .version import *
+#from realesrgan.version import *
