@@ -2,6 +2,7 @@ import os
 import glob
 import torch
 import random
+import torchvision
 import skimage.io
 import numpy as np
 from PIL import Image
@@ -15,6 +16,8 @@ from torch.utils import data as data
 from torchvision.transforms.functional import normalize
 import realesrgan.data.util as Util
 
+
+totensor = torchvision.transforms.ToTensor()
 
 @DATASET_REGISTRY.register()
 class RealESRGANPairedDataset(data.Dataset):
@@ -60,14 +63,19 @@ class RealESRGANPairedDataset(data.Dataset):
         # Adding code here to deal with specific satellite imagery input. 
         # Uncomment below code if you want to run original code / dataset structure.
 
-        dataroot = '/data/piperw/first_ten_million/'
         datatype = 's2'
         self.datatype = datatype
-        self.n_s2_images = 6 #n_s2_images
-        self.output_size = 64 #output_size
+        self.n_s2_images = 18 #n_s2_images
+        self.output_size = 128 #output_size
         self.max_tiles = -1 #max_tiles
         specify_val = True
+
         self.split = opt['phase']
+        print("self.split ==", self.split)
+        if self.split == 'train':
+            dataroot = '/data/piperw/urban_set/'
+        elif self.split == 'val':
+            dataroot = '/data/piperw/held_out_set/'
 
         # Paths to the imagery.
         self.s2_path = os.path.join(dataroot, 's2_condensed')
@@ -93,6 +101,7 @@ class RealESRGANPairedDataset(data.Dataset):
 
         self.naip_chips = glob.glob(self.naip_path + '/**/*.png', recursive=True)
         print("self.naip chips:", len(self.naip_chips))
+        print("held out set:", len(self.val_fps))
 
         # Conditioning on S2.
         if datatype == 's2' or datatype == 's2_and_downsampled_naip' or datatype == 'just-s2':
@@ -102,6 +111,7 @@ class RealESRGANPairedDataset(data.Dataset):
 
 		# If this is the train dataset, ignore the subset of images that we want to use for validation.
                 if self.split == 'train' and specify_val and (n in self.val_fps):
+                    print("split == train and n in val_fps")
                     continue
 		# If this is the validation dataset, ignore any images that aren't in the subset.
                 if self.split == 'val' and specify_val and not (n in self.val_fps):
@@ -141,35 +151,7 @@ class RealESRGANPairedDataset(data.Dataset):
                 self.datapoints.append(n)
             self.data_len = len(self.datapoints)
 
-
-        """
-        self.gt_folder, self.lq_folder = opt['dataroot_gt'], opt['dataroot_lq']
-        self.filename_tmpl = opt['filename_tmpl'] if 'filename_tmpl' in opt else '{}'
-
-        # file client (lmdb io backend)
-        if self.io_backend_opt['type'] == 'lmdb':
-            self.io_backend_opt['db_paths'] = [self.lq_folder, self.gt_folder]
-            self.io_backend_opt['client_keys'] = ['lq', 'gt']
-            self.paths = paired_paths_from_lmdb([self.lq_folder, self.gt_folder], ['lq', 'gt'])
-
-        elif 'meta_info' in self.opt and self.opt['meta_info'] is not None:
-            # disk backend with meta_info
-            # Each line in the meta_info describes the relative path to an image
-            with open(self.opt['meta_info']) as fin:
-                paths = [line.strip() for line in fin]
-            self.paths = []
-            for path in paths:
-                gt_path, lq_path = path.split(', ')
-                gt_path = os.path.join(self.gt_folder, gt_path)
-                lq_path = os.path.join(self.lq_folder, lq_path)
-                self.paths.append(dict([('gt_path', gt_path), ('lq_path', lq_path)]))
-        else:
-            # disk backend
-            # it will scan the whole folder to get meta info
-            # it will be time-consuming for folders with too many files. It is recommended using an extra meta txt file
-            self.paths = paired_paths_from_folder([self.lq_folder, self.gt_folder], ['lq', 'gt'], self.filename_tmpl)
-        """
-
+        print("self.data_len:", self.data_len)
 
     def __getitem__(self, index):
 
@@ -194,15 +176,37 @@ class RealESRGANPairedDataset(data.Dataset):
                 s2_chunks = np.array(s2_chunks)
                 naip_chip = s2_chunks[0]  # this is a fake naip chip
             else:
-                # Pick 18 random indices of s2 images to use.
-                rand_indices = random.sample(range(0, len(s2_chunks)), self.n_s2_images)
-                s2_chunks = [s2_chunks[i] for i in rand_indices]
-                s2_chunks = np.array(s2_chunks)
+                # SPECIAL CASE: when we are running a S2 upsampling experiment, sample 1 more 
+                # S2 image than specified. We'll use that as our "high res" image and the rest 
+                # as conditioning. Because the min number of S2 images is 18, have to use 17 for time series.
+                if self.datatype == 'just-s2':
+                    rand_indices = random.sample(range(0, len(s2_chunks)), self.n_s2_images)
+                    s2_chunks = [s2_chunks[i] for i in rand_indices[1:]]
+                    s2_chunks = np.array(s2_chunks)
+                    naip_chip = s2_chunks[0]  # this is a fake naip chip
 
-                # Upsample to 512x512 (or whatever size your desired output is going to be.
-                up_s2_chunk = torch.permute(torch.from_numpy(s2_chunks), (0, 3, 1, 2))
-                up_s2_chunk = trans_fn.resize(up_s2_chunk, self.output_size, Image.BICUBIC)
-                s2_chunks = torch.permute(up_s2_chunk, (0, 2, 3, 1)).numpy()
+                else:
+                    # Iterate through the 32x32 chunks at each timestep, separating them into "good" (valid)
+                    # and "bad" (partially black, invalid). Will use these to pick best collection of S2 images.
+                    goods, bads = [], []
+                    for i,ts in enumerate(s2_chunks):
+                        if [0, 0, 0] in ts:
+                            bads.append(i)
+                        else:
+                            goods.append(i)
+
+                    # Pick 18 random indices of s2 images to use. Skip ones that are partially black.
+                    if len(goods) >= self.n_s2_images:
+                        rand_indices = random.sample(goods, self.n_s2_images)
+                    else:
+                        need = self.n_s2_images - len(goods)
+                        rand_indices = goods + random.sample(bads, need)
+
+                    s2_chunks = [s2_chunks[i] for i in rand_indices]
+                    s2_chunks = np.array(s2_chunks)
+
+                # I *think* that the input should be the original 32x32 instead of upsampling first...
+                # So deleted the code where we upsampled the S2 images to the desired output size.
 
             # If conditioning on downsampled naip (along with S2), need to downsample original NAIP datapoint and upsample
             # it to get it to the size of the other inputs.
@@ -232,8 +236,12 @@ class RealESRGANPairedDataset(data.Dataset):
                     [img_SR, img_HR] = Util.transform_augment(
 				    [s2_chunk, naip_chip], split=self.split, min_max=(-1, 1))
                 else:
-                    [s2_chunks, img_HR] = Util.transform_augment(
-                                    [s2_chunks, naip_chip], split=self.split, min_max=(-1, 1), multi_s2=True)
+                    # NOTE: trying something different here....
+                    s2_chunks = [totensor(img) for img in s2_chunks]
+                    img_HR = totensor(naip_chip)
+
+                    #[s2_chunks, img_HR] = Util.transform_augment(
+                    #                [s2_chunks, naip_chip], split=self.split, min_max=(-1, 1), multi_s2=True)
 
                     use_3d = False
                     if use_3d:
@@ -259,44 +267,6 @@ class RealESRGANPairedDataset(data.Dataset):
 
         else:
             print("Unsupported type...")
-
-
-        """
-        if self.file_client is None:
-            self.file_client = FileClient(self.io_backend_opt.pop('type'), **self.io_backend_opt)
-
-        scale = self.opt['scale']
-
-        # Load gt and lq images. Dimension order: HWC; channel order: BGR;
-        # image range: [0, 1], float32.
-        gt_path = self.paths[index]['gt_path']
-        img_bytes = self.file_client.get(gt_path, 'gt')
-        img_gt = imfrombytes(img_bytes, float32=True)
-        lq_path = self.paths[index]['lq_path']
-        img_bytes = self.file_client.get(lq_path, 'lq')
-        img_lq = imfrombytes(img_bytes, float32=True)
-
-        # Added code to crop to 256x256 since LSUN images are not standard.
-        #if not(img_gt.shape[0] == 256 and img_gt.shape[1] == 256):
-        #    img_gt = img_gt[:256, :256, :]
-
-        # augmentation for training
-        if self.opt['phase'] == 'train':
-            gt_size = self.opt['gt_size']
-            # random crop
-            img_gt, img_lq = paired_random_crop(img_gt, img_lq, gt_size, scale, gt_path)
-            # flip, rotation
-            img_gt, img_lq = augment([img_gt, img_lq], self.opt['use_hflip'], self.opt['use_rot'])
-
-        # BGR to RGB, HWC to CHW, numpy to tensor
-        img_gt, img_lq = img2tensor([img_gt, img_lq], bgr2rgb=True, float32=True)
-        # normalize
-        if self.mean is not None or self.std is not None:
-            normalize(img_lq, self.mean, self.std, inplace=True)
-            normalize(img_gt, self.mean, self.std, inplace=True)
-
-        return {'lq': img_lq, 'gt': img_gt, 'lq_path': lq_path, 'gt_path': gt_path}
-        """
 
     def __len__(self):
         return self.data_len
