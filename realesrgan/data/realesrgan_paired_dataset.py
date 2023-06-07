@@ -66,7 +66,7 @@ class RealESRGANPairedDataset(data.Dataset):
         datatype = 's2'
         self.datatype = datatype
         self.n_s2_images = 18 #n_s2_images
-        self.output_size = 128 #output_size
+        self.output_size = 512 #output_size
         self.max_tiles = -1 #max_tiles
         specify_val = True
 
@@ -81,6 +81,8 @@ class RealESRGANPairedDataset(data.Dataset):
         self.s2_path = os.path.join(dataroot, 's2_condensed')
         if self.output_size == 512:
             self.naip_path = os.path.join(dataroot, 'naip')
+        elif self.output_size == 256:
+            self.naip_path = os.path.join(dataroot, 'naip_256')
         elif self.output_size == 128:
             self.naip_path = os.path.join(dataroot, 'naip_128')
         elif self.output_size == 64:
