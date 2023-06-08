@@ -1,5 +1,5 @@
 # general settings
-name: 18S2_x4_upsample
+name: testing_preemptible
 model_type: RealESRGANModel
 scale: 4
 num_gpu: auto
@@ -23,7 +23,7 @@ datasets:
     io_backend:
       type: disk
 
-    gt_size: 128
+    gt_size: 512
     use_hflip: True
     use_rot: False
 
