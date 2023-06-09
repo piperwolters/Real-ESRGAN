@@ -155,6 +155,26 @@ class RealESRGANPairedDataset(data.Dataset):
 
         print("self.data_len:", self.data_len)
 
+    def get_tile_weight_sampler(self, tile_weights):
+        weights = []
+        for dp in self.datapoints:
+            # Extract the NAIP chip from this datapoint's NAIP path.
+            # With the chip, we can index into the tile_weights dict (naip_chip : weight)
+            # and then weight this datapoint pair in self.datapoints based on that value.
+            naip_path = dp[0]
+            split = naip_path.split('/')[-1]
+            chip = split[:-4]
+
+            # If the chip isn't in the tile weights dict, then there weren't any OSM features
+            # in that chip, so we can set the weight to be relatively low (ex. 1).
+            if not chip in tile_weights:
+                weights.append(1)
+            else:
+                weights.append(tile_weights[chip])
+
+        print('using tile_weight_sampler, min={} max={} mean={}'.format(min(weights), max(weights), np.mean(weights)))
+        return torch.utils.data.WeightedRandomSampler(weights, len(self.datapoints))
+
     def __getitem__(self, index):
 
         # Conditioning on S2, or S2 and downsampled NAIP.
