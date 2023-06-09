@@ -66,7 +66,7 @@ class RealESRGANPairedDataset(data.Dataset):
         datatype = 's2'
         self.datatype = datatype
         self.n_s2_images = 18 #n_s2_images
-        self.output_size = int(opt['datasets']['train']['gt_size']) #output_size
+        self.output_size = 128 #int(opt['train']['gt_size']) #output_size
         self.max_tiles = -1 #max_tiles
         specify_val = True
 

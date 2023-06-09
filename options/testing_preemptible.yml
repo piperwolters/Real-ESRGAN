@@ -23,7 +23,7 @@ datasets:
     io_backend:
       type: disk
 
-    gt_size: 512
+    gt_size: 128
     use_hflip: True
     use_rot: False
 
@@ -40,6 +40,8 @@ datasets:
      type: RealESRGANPairedDataset
      dataroot_gt: /data/piperw/held_out_set/naip
      dataroot_lq: /data/piperw/held_out_set/s2_condensed
+     num_worker_per_gpu: 1
+     batch_size_per_gpu: 1
      io_backend:
        type: disk
 
@@ -126,7 +128,7 @@ train:
 # Uncomment these for validation
 # validation settings
 val:
-   val_freq: !!float 5e3
+   val_freq: !!float 100
    save_img: True
 
    metrics:
