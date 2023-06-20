@@ -12,12 +12,30 @@ from basicsr.data.data_util import paired_paths_from_folder, paired_paths_from_l
 from basicsr.data.transforms import augment, paired_random_crop
 from basicsr.utils import FileClient, imfrombytes, img2tensor
 from basicsr.utils.registry import DATASET_REGISTRY
+from torch.utils.data import WeightedRandomSampler
 from torch.utils import data as data
 from torchvision.transforms.functional import normalize
 import realesrgan.data.util as Util
 
 
 totensor = torchvision.transforms.ToTensor()
+
+
+class CustomWeightedRandomSampler(WeightedRandomSampler):
+    """
+    WeightedRandomSampler except allows for more than 2^24 samples to be sampled.
+    Source code: https://github.com/pytorch/pytorch/issues/2576#issuecomment-831780307
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __iter__(self):
+        rand_tensor = np.random.choice(range(0, len(self.weights)),
+                                       size=self.num_samples,
+                                       p=self.weights.numpy() / torch.sum(self.weights).numpy(),
+                                       replace=self.replacement)
+        rand_tensor = torch.from_numpy(rand_tensor)
+        return iter(rand_tensor.tolist())
 
 @DATASET_REGISTRY.register()
 class RealESRGANPairedDataset(data.Dataset):
@@ -66,14 +84,14 @@ class RealESRGANPairedDataset(data.Dataset):
         datatype = 's2'
         self.datatype = datatype
         self.n_s2_images = 18 #n_s2_images
-        self.output_size = 128 #int(opt['datasets']['train']['gt_size']) #output_size
+        self.output_size = 128 #int(opt['train']['gt_size']) #output_size
         self.max_tiles = -1 #max_tiles
         specify_val = True
 
         self.split = opt['phase']
         print("self.split ==", self.split)
         if self.split == 'train':
-            dataroot = '/data/piperw/urban_set/'
+            dataroot = '/data/piperw/full_dataset/'
         elif self.split == 'val':
             dataroot = '/data/piperw/held_out_set/'
 
@@ -155,38 +173,71 @@ class RealESRGANPairedDataset(data.Dataset):
 
         print("self.data_len:", self.data_len)
 
+    def get_tile_weight_sampler(self, tile_weights):
+        weights = []
+        for dp in self.datapoints:
+            # Extract the NAIP chip from this datapoint's NAIP path.
+            # With the chip, we can index into the tile_weights dict (naip_chip : weight)
+            # and then weight this datapoint pair in self.datapoints based on that value.
+            naip_path = dp[0]
+            split = naip_path.split('/')[-1]
+            chip = split[:-4]
+
+            # If the chip isn't in the tile weights dict, then there weren't any OSM features
+            # in that chip, so we can set the weight to be relatively low (ex. 1).
+            if not chip in tile_weights:
+                weights.append(1)
+            else:
+                weights.append(tile_weights[chip])
+
+        print('using tile_weight_sampler, min={} max={} mean={}'.format(min(weights), max(weights), np.mean(weights)))
+        #return torch.utils.data.WeightedRandomSampler(weights, len(self.datapoints))
+        return CustomWeightedRandomSampler(weights, len(self.datapoints))
+
     def __getitem__(self, index):
 
         # Conditioning on S2, or S2 and downsampled NAIP.
         if self.datatype == 's2' or self.datatype == 's2_and_downsampled_naip' or self.datatype == 'just-s2':
-            datapoint = self.datapoints[index]
-            naip_path, s2_path = datapoint[0], datapoint[1]
 
-            # Load the 512x512 NAIP chip.
-            naip_chip = skimage.io.imread(naip_path)
+            # A while loop and try/excepts to catch a few potential errors and continue if caught.
+            counter = 0
+            while True:
+                index += counter  # increment the index based on what errors have been caught
+                if index >= self.data_len:
+                    index = 0
 
-            # Load the Tx32x32 S2 file.
-            s2_images = skimage.io.imread(s2_path)
-            s2_chunks = np.reshape(s2_images, (-1, 32, 32, 3))
+                datapoint = self.datapoints[index]
+                naip_path, s2_path = datapoint[0], datapoint[1]
 
-            # SPECIAL CASE: when we are running a S2 upsampling experiment, sample 1 more 
-            # S2 image than specified. We'll use that as our "high res" image and the rest 
-            # as conditioning. Because the min number of S2 images is 18, have to use 17 for time series.
-            if self.datatype == 'just-s2':
-                rand_indices = random.sample(range(0, len(s2_chunks)), self.n_s2_images)
-                s2_chunks = [s2_chunks[i] for i in rand_indices[1:]]
-                s2_chunks = np.array(s2_chunks)
-                naip_chip = s2_chunks[0]  # this is a fake naip chip
-            else:
-                # SPECIAL CASE: when we are running a S2 upsampling experiment, sample 1 more 
-                # S2 image than specified. We'll use that as our "high res" image and the rest 
-                # as conditioning. Because the min number of S2 images is 18, have to use 17 for time series.
+		# Load the 512x512 NAIP chip.
+                naip_chip = skimage.io.imread(naip_path)
+
+                # Check for black pixels (almost certainly invalid) and skip if found.
+                if [0, 0, 0] in naip_chip:
+                    counter += 1
+                    #print(naip_path, " contains invalid pixels.")
+                    continue
+
+                # Load the T*32x32 S2 file.
+                # There are a few bad S2 paths, if caught then skip to the next one.
+                try:
+                    s2_images = skimage.io.imread(s2_path)
+                except:
+                    print(s2_path, " failed to load correctly.")
+                    counter += 1
+                    continue
+
+                # Reshape to be Tx32x32.
+                s2_chunks = np.reshape(s2_images, (-1, 32, 32, 3))
+
+		# SPECIAL CASE: when we are running a S2 upsampling experiment, sample 1 more 
+		# S2 image than specified. We'll use that as our "high res" image and the rest 
+		# as conditioning. Because the min number of S2 images is 18, have to use 17 for time series.
                 if self.datatype == 'just-s2':
                     rand_indices = random.sample(range(0, len(s2_chunks)), self.n_s2_images)
                     s2_chunks = [s2_chunks[i] for i in rand_indices[1:]]
                     s2_chunks = np.array(s2_chunks)
                     naip_chip = s2_chunks[0]  # this is a fake naip chip
-
                 else:
                     # Iterate through the 32x32 chunks at each timestep, separating them into "good" (valid)
                     # and "bad" (partially black, invalid). Will use these to pick best collection of S2 images.
@@ -207,8 +258,10 @@ class RealESRGANPairedDataset(data.Dataset):
                     s2_chunks = [s2_chunks[i] for i in rand_indices]
                     s2_chunks = np.array(s2_chunks)
 
-                # I *think* that the input should be the original 32x32 instead of upsampling first...
-                # So deleted the code where we upsampled the S2 images to the desired output size.
+		    # I *think* that the input should be the original 32x32 instead of upsampling first...
+		    # So deleted the code where we upsampled the S2 images to the desired output size.
+	
+                break
 
             # If conditioning on downsampled naip (along with S2), need to downsample original NAIP datapoint and upsample
             # it to get it to the size of the other inputs.

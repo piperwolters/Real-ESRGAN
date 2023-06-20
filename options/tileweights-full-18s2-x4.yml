@@ -1,5 +1,5 @@
 # general settings
-name: testing_preemptible
+name: tile-weights-full_18S2_x4_upsample
 model_type: RealESRGANModel
 scale: 4
 num_gpu: auto
@@ -17,8 +17,8 @@ datasets:
   train:
     name: 18S2-NAIP
     type: RealESRGANPairedDataset
-    dataroot_gt: /data/piperw/urban_set/naip
-    dataroot_lq: /data/piperw/urban_set/s2_condensed
+    dataroot_gt: /data/piperw/full_dataset/naip
+    dataroot_lq: /data/piperw/full_dataset/s2_condensed
     meta_info: /data/Real-ESRGAN_data/metadata/naip_meta_info.txt 
     io_backend:
       type: disk
@@ -26,11 +26,13 @@ datasets:
     gt_size: 128
     use_hflip: True
     use_rot: False
+    
+    tile_weights: /data/piperw/tile_weights/full_dataset_weights.json
 
     # data loader
     use_shuffle: true
-    num_worker_per_gpu: 4
-    batch_size_per_gpu: 64
+    num_worker_per_gpu: 8
+    batch_size_per_gpu: 128
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
@@ -40,8 +42,6 @@ datasets:
      type: RealESRGANPairedDataset
      dataroot_gt: /data/piperw/held_out_set/naip
      dataroot_lq: /data/piperw/held_out_set/s2_condensed
-     num_worker_per_gpu: 1
-     batch_size_per_gpu: 1
      io_backend:
        type: disk
 
@@ -128,7 +128,7 @@ train:
 # Uncomment these for validation
 # validation settings
 val:
-   val_freq: !!float 100
+   val_freq: !!float 5e3
    save_img: True
 
    metrics:
