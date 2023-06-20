@@ -1,5 +1,5 @@
 # general settings
-name: tile-weights-wholedataset_18S2_x4_upsample
+name: tile-weights-urban_18S2_x4_upsample
 model_type: RealESRGANModel
 scale: 4
 num_gpu: auto
@@ -27,7 +27,7 @@ datasets:
     use_hflip: True
     use_rot: False
     
-    tile_weights: /data/piperw/tile_weights/full_dataset_weights.json
+    tile_weights: /data/piperw/tile_weights/urban_set_weights.json
 
     # data loader
     use_shuffle: true
