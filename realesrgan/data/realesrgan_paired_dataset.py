@@ -77,23 +77,15 @@ class RealESRGANPairedDataset(data.Dataset):
         self.mean = opt['mean'] if 'mean' in opt else None
         self.std = opt['std'] if 'std' in opt else None
 
-
-        # Adding code here to deal with specific satellite imagery input. 
-        # Uncomment below code if you want to run original code / dataset structure.
-
-        datatype = 's2'
-        self.datatype = datatype
-        self.n_s2_images = 18 #n_s2_images
-        self.output_size = 128 #int(opt['train']['gt_size']) #output_size
+        self.datatype = 's2'
         self.max_tiles = -1 #max_tiles
         specify_val = True
 
         self.split = opt['phase']
-        print("self.split ==", self.split)
-        if self.split == 'train':
-            dataroot = '/data/piperw/full_dataset/'
-        elif self.split == 'val':
-            dataroot = '/data/piperw/held_out_set/'
+        self.use_3d = bool(opt['use_3d'])
+        dataroot = opt['dataroot']
+        self.output_size = int(opt['output_size'])
+        self.n_s2_images = int(opt['n_s2_images'])
 
         # Paths to the imagery.
         self.s2_path = os.path.join(dataroot, 's2_condensed')
@@ -124,7 +116,7 @@ class RealESRGANPairedDataset(data.Dataset):
         print("held out set:", len(self.val_fps))
 
         # Conditioning on S2.
-        if datatype == 's2' or datatype == 's2_and_downsampled_naip' or datatype == 'just-s2':
+        if self.datatype == 's2' or self.datatype == 's2_and_downsampled_naip' or self.datatype == 'just-s2':
 
             self.datapoints = []
             for n in self.naip_chips:
@@ -155,7 +147,7 @@ class RealESRGANPairedDataset(data.Dataset):
             self.data_len = len(self.datapoints)
 
         # NAIP reconstruction, build downsampled version on-the-fly.
-        elif datatype == 'naip':
+        elif self.datatype == 'naip':
 
             # Build list of NAIP chip paths.
             self.datapoints = []
@@ -298,9 +290,9 @@ class RealESRGANPairedDataset(data.Dataset):
                     #[s2_chunks, img_HR] = Util.transform_augment(
                     #                [s2_chunks, naip_chip], split=self.split, min_max=(-1, 1), multi_s2=True)
 
-                    use_3d = False
-                    if use_3d:
+                    if self.use_3d:
                         img_SR = torch.stack(s2_chunks)
+                        img_SR = torch.permute(img_SR, (1, 0, 2, 3))  # cxtxhxw
                     else:
                         img_SR = torch.cat(s2_chunks)
 

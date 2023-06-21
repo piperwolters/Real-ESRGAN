@@ -17,9 +17,7 @@ datasets:
   train:
     name: 18S2-NAIP
     type: RealESRGANPairedDataset
-    dataroot_gt: /data/piperw/urban_set/naip
-    dataroot_lq: /data/piperw/urban_set/s2_condensed
-    meta_info: /data/Real-ESRGAN_data/metadata/naip_meta_info.txt 
+    dataroot: /data/piperw/urban_set
     io_backend:
       type: disk
 
@@ -27,10 +25,14 @@ datasets:
     use_hflip: True
     use_rot: False
 
+    use_3d: False
+    output_size: 128
+    n_s2_images: 18
+
     # data loader
     use_shuffle: true
     num_worker_per_gpu: 4
-    batch_size_per_gpu: 64
+    batch_size_per_gpu: 1
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
@@ -38,10 +40,14 @@ datasets:
   val:
      name: validation
      type: RealESRGANPairedDataset
-     dataroot_gt: /data/piperw/held_out_set/naip
-     dataroot_lq: /data/piperw/held_out_set/s2_condensed
+     dataroot: /data/piperw/held_out_set
      num_worker_per_gpu: 1
      batch_size_per_gpu: 1
+
+     use_3d: False
+     output_size: 128
+     n_s2_images: 18
+
      io_backend:
        type: disk
 
