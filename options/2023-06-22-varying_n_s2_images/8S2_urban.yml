@@ -1,5 +1,5 @@
 # general settings
-name: 2S2_urban
+name: esrgan_8S2_urban
 model_type: RealESRGANModel
 scale: 4
 num_gpu: auto
@@ -26,7 +26,7 @@ datasets:
 
     use_3d: False
     output_size: 128
-    n_s2_images: 2
+    n_s2_images: 8
 
     tile_weights: /data/piperw/tile_weights/urban_set_weights.json
 
@@ -47,7 +47,7 @@ datasets:
 
      use_3d: False
      output_size: 128
-     n_s2_images: 2
+     n_s2_images: 8
 
      use_shuffle: false
 
@@ -57,7 +57,7 @@ datasets:
 # network structures
 network_g:
   type: RRDBNet
-  num_in_ch: 6
+  num_in_ch: 24
   num_out_ch: 3
   num_feat: 64
   num_block: 23

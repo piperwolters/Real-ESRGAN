@@ -1,5 +1,5 @@
 # general settings
-name: 2S2_urban
+name: testing
 model_type: RealESRGANModel
 scale: 4
 num_gpu: auto
@@ -17,18 +17,18 @@ datasets:
   train:
     name: 18S2-NAIP
     type: RealESRGANPairedDataset
-    dataroot: /data/piperw/urban_set
+    dataroot: /data/piperw/full_dataset
     io_backend:
       type: disk
 
+    output_size: 128
+    use_3d: False
+    n_s2_images: 18
+
     use_hflip: True
     use_rot: False
-
-    use_3d: False
-    output_size: 128
-    n_s2_images: 2
-
-    tile_weights: /data/piperw/tile_weights/urban_set_weights.json
+    
+    tile_weights: /data/piperw/tile_weights/full_dataset_weights.json
 
     # data loader
     use_shuffle: false
@@ -42,13 +42,10 @@ datasets:
      name: validation
      type: RealESRGANPairedDataset
      dataroot: /data/piperw/held_out_set
-     num_worker_per_gpu: 1
-     batch_size_per_gpu: 1
 
-     use_3d: False
      output_size: 128
-     n_s2_images: 2
-
+     use_3d: False
+     n_s2_images: 18
      use_shuffle: false
 
      io_backend:
@@ -57,7 +54,7 @@ datasets:
 # network structures
 network_g:
   type: RRDBNet
-  num_in_ch: 6
+  num_in_ch: 54
   num_out_ch: 3
   num_feat: 64
   num_block: 23
@@ -137,7 +134,7 @@ train:
 # Uncomment these for validation
 # validation settings
 val:
-   val_freq: !!float 5e3
+   val_freq: !!float 100
    save_img: True
 
    metrics:
