@@ -250,9 +250,6 @@ class RealESRGANPairedDataset(data.Dataset):
                     s2_chunks = [s2_chunks[i] for i in rand_indices]
                     s2_chunks = np.array(s2_chunks)
 
-		    # I *think* that the input should be the original 32x32 instead of upsampling first...
-		    # So deleted the code where we upsampled the S2 images to the desired output size.
-	
                 break
 
             # If conditioning on downsampled naip (along with S2), need to downsample original NAIP datapoint and upsample
@@ -277,24 +274,14 @@ class RealESRGANPairedDataset(data.Dataset):
 
             elif self.datatype == 's2' or self.datatype == 'just-s2':
 
-                if len(s2_chunks) == 1:
-                    s2_chunk = s2_chunks[0]
+                s2_chunks = [totensor(img) for img in s2_chunks]
+                img_HR = totensor(naip_chip)
 
-                    [img_SR, img_HR] = Util.transform_augment(
-				    [s2_chunk, naip_chip], split=self.split, min_max=(-1, 1))
+                if self.use_3d:
+                    img_SR = torch.stack(s2_chunks)
+                    img_SR = torch.permute(img_SR, (1, 0, 2, 3))  # cxtxhxw
                 else:
-                    # NOTE: trying something different here....
-                    s2_chunks = [totensor(img) for img in s2_chunks]
-                    img_HR = totensor(naip_chip)
-
-                    #[s2_chunks, img_HR] = Util.transform_augment(
-                    #                [s2_chunks, naip_chip], split=self.split, min_max=(-1, 1), multi_s2=True)
-
-                    if self.use_3d:
-                        img_SR = torch.stack(s2_chunks)
-                        img_SR = torch.permute(img_SR, (1, 0, 2, 3))  # cxtxhxw
-                    else:
-                        img_SR = torch.cat(s2_chunks)
+                    img_SR = torch.cat(s2_chunks)
 
             return {'gt': img_HR, 'lq': img_SR, 'Index': index}
 
