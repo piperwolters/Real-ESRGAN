@@ -1,5 +1,5 @@
 # general settings
-name: esrgan_42_urban
+name: esrgan_4S2_urban
 model_type: RealESRGANModel
 scale: 4
 num_gpu: auto
