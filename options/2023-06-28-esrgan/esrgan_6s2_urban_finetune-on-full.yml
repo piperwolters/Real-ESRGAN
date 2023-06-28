@@ -1,5 +1,5 @@
 # general settings
-name: esrgan_18S2_urban
+name: 6S2_urban_finetuned-on-full
 model_type: RealESRGANModel
 scale: 4
 num_gpu: auto
@@ -17,7 +17,7 @@ datasets:
   train:
     name: 18S2-NAIP
     type: RealESRGANPairedDataset
-    dataroot: /data/piperw/full_dataset
+    dataroot: /data/piperw/urban_set
     io_backend:
       type: disk
 
@@ -26,14 +26,12 @@ datasets:
 
     use_3d: False
     output_size: 128
-    n_s2_images: 18
-
-    tile_weights: /data/piperw/tile_weights/full_dataset_weights.json
+    n_s2_images: 6
 
     # data loader
     use_shuffle: false
     num_worker_per_gpu: 4
-    batch_size_per_gpu: 64
+    batch_size_per_gpu: 128
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
@@ -47,7 +45,7 @@ datasets:
 
      use_3d: False
      output_size: 128
-     n_s2_images: 18
+     n_s2_images: 6
 
      use_shuffle: false
 
@@ -57,7 +55,7 @@ datasets:
 # network structures
 network_g:
   type: RRDBNet
-  num_in_ch: 54
+  num_in_ch: 18
   num_out_ch: 3
   num_feat: 64
   num_block: 23
