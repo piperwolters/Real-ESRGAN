@@ -1,5 +1,5 @@
 # general settings
-name: 6S2_urban_finetuned-on-full
+name: esrgan_6S2_urban_larger1
 model_type: RealESRGANModel
 scale: 4
 num_gpu: auto
@@ -31,7 +31,7 @@ datasets:
     # data loader
     use_shuffle: false
     num_worker_per_gpu: 8
-    batch_size_per_gpu: 128
+    batch_size_per_gpu: 64
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
@@ -57,7 +57,7 @@ network_g:
   type: RRDBNet
   num_in_ch: 18
   num_out_ch: 3
-  num_feat: 64
+  num_feat: 128
   num_block: 23
   num_grow_ch: 32
 
