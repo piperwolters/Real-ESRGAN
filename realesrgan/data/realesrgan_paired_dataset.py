@@ -77,7 +77,7 @@ class RealESRGANPairedDataset(data.Dataset):
         self.mean = opt['mean'] if 'mean' in opt else None
         self.std = opt['std'] if 'std' in opt else None
 
-        self.datatype = 's2'
+        self.datatype = 's2' 
         self.max_tiles = -1 #max_tiles
         specify_val = True
 
@@ -144,8 +144,6 @@ class RealESRGANPairedDataset(data.Dataset):
                 if self.max_tiles != -1 and len(self.datapoints) >= self.max_tiles:
                     break
 
-            self.data_len = len(self.datapoints)
-
         # NAIP reconstruction, build downsampled version on-the-fly.
         elif self.datatype == 'naip':
 
@@ -161,8 +159,8 @@ class RealESRGANPairedDataset(data.Dataset):
                     continue
 
                 self.datapoints.append(n)
-            self.data_len = len(self.datapoints)
 
+        self.data_len = len(self.datapoints)
         print("self.data_len:", self.data_len)
 
     def get_tile_weight_sampler(self, tile_weights):
