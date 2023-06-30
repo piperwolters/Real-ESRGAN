@@ -61,7 +61,7 @@ def main():
 
         batch.append(img)
         batch_names.append([basename, imgname])
-        if len(batch) == 256:
+        if len(batch) == 64:
             batches.append(torch.stack(batch))
             batches_names.append(batch_names)
             batch, batch_names = [], []
@@ -70,9 +70,10 @@ def main():
         try:
             print("input:", batch.shape, " time:", time.perf_counter())
             with torch.no_grad():
-                output = model(batch)
-                print("output:", output.shape, " time:", time.perf_counter())
-                output = torch.permute(output, (0, 2, 3, 1)).squeeze()
+                with torch.cuda.amp.autocast(enabled=True):
+                    output = model(batch)
+                    print("output:", output.shape, " time:", time.perf_counter())
+                    output = torch.permute(output, (0, 2, 3, 1)).squeeze()
         except RuntimeError as error:
             print('Error', error)
 

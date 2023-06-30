@@ -39,7 +39,7 @@ datasets:
   val:
      name: validation
      type: RealESRGANPairedDataset
-     dataroot: /data/piperw/held_out_set
+     dataroot: /data/piperw/urban_set
      num_worker_per_gpu: 1
      batch_size_per_gpu: 1
 
@@ -135,7 +135,7 @@ train:
 # Uncomment these for validation
 # validation settings
 val:
-   val_freq: !!float 5e3
+   val_freq: !!float 100
    save_img: False
 
    metrics:
@@ -147,7 +147,7 @@ val:
 # logging settings
 logger:
   print_freq: 100
-  save_checkpoint_freq: !!float 5e3
+  save_checkpoint_freq: !!float 100
   use_tb_logger: true
   wandb:
     project: multisat
