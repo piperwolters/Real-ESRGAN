@@ -17,7 +17,7 @@ datasets:
   train:
     name: 18S2-NAIP
     type: RealESRGANPairedDataset
-    dataroot: /data/piperw/urban_dataset
+    dataroot: /data/piperw/urban_set
     io_backend:
       type: disk
 
@@ -31,7 +31,7 @@ datasets:
     # data loader
     use_shuffle: false
     num_worker_per_gpu: 4
-    batch_size_per_gpu: 128
+    batch_size_per_gpu: 64
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 

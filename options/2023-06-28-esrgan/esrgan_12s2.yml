@@ -17,7 +17,7 @@ datasets:
   train:
     name: 18S2-NAIP
     type: RealESRGANPairedDataset
-    dataroot: /data/piperw/urban_dataset
+    dataroot: /data/piperw/urban_set
     io_backend:
       type: disk
 
