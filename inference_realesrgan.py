@@ -34,7 +34,7 @@ def main():
         model_path = args.model_path
         print("loading....", model_path)
         state_dict = torch.load(model_path)
-        model.load_state_dict(state_dict['params'])
+        model.load_state_dict(state_dict['params_ema'])
 
     model.eval()
 
@@ -66,29 +66,28 @@ def main():
             batches_names.append(batch_names)
             batch, batch_names = [], []
 
-    for i,batch in enumerate(batches):
-        try:
-            print("input:", batch.shape, " time:", time.perf_counter())
-            with torch.no_grad():
-                with torch.cuda.amp.autocast(enabled=True):
+    extension = 'png'
+    with torch.no_grad():
+        with torch.cuda.amp.autocast(enabled=True):
+            for i,batch in enumerate(batches):
+                try:
+                    print("input:", batch.shape, " time:", time.perf_counter())
                     output = model(batch)
                     print("output:", output.shape, " time:", time.perf_counter())
                     output = torch.permute(output, (0, 2, 3, 1)).squeeze()
-        except RuntimeError as error:
-            print('Error', error)
+                except RuntimeError as error:
+                    print('Error', error)
 
-        else:
-            extension = 'png'
-           
-            print("saving...", time.perf_counter())
-            for j,b in enumerate(output):
-                basename, imgname = batches_names[i][j]
+                else:
+                    print("saving...", time.perf_counter())
+                    for j,b in enumerate(output):
+                        basename, imgname = batches_names[i][j]
 
-                os.makedirs(basename, exist_ok=True)
-                save_path = os.path.join(basename, f'{imgname}.{extension}')
+                        os.makedirs(basename, exist_ok=True)
+                        save_path = os.path.join(basename, f'{imgname}.{extension}')
 
-                #skimage.io.imsave(save_path, b.detach().numpy())
-            print("done saving batch...", time.perf_counter())
+                        #skimage.io.imsave(save_path, b.detach().numpy())
+                    print("done saving batch...", time.perf_counter())
 
 
 if __name__ == '__main__':
