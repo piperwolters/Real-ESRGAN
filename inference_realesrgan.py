@@ -41,8 +41,6 @@ def main():
     input_path = '/data/piperw/inference_data/' + args.input + '/s2_condensed' 
     paths = sorted(glob.glob(os.path.join(input_path, '*/*.png')))
 
-    paths = paths * 100
-
     batches_names, batch_names = [], []  # list of list of [basename, imgname]
     batches = []
     batch = []
@@ -68,10 +66,8 @@ def main():
 
     for i,batch in enumerate(batches):
         try:
-            print("input:", batch.shape, " time:", time.perf_counter())
             with torch.no_grad():
                 output = model(batch)
-                print("output:", output.shape, " time:", time.perf_counter())
                 output = torch.permute(output, (0, 2, 3, 1)).squeeze()
         except RuntimeError as error:
             print('Error', error)
@@ -79,7 +75,6 @@ def main():
         else:
             extension = 'png'
            
-            print("saving...", time.perf_counter())
             for j,b in enumerate(output):
                 basename, imgname = batches_names[i][j]
 
@@ -87,7 +82,6 @@ def main():
                 save_path = os.path.join(basename, f'{imgname}.{extension}')
 
                 #skimage.io.imsave(save_path, b.detach().numpy())
-            print("done saving batch...", time.perf_counter())
 
 
 if __name__ == '__main__':
