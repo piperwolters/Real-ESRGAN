@@ -1,5 +1,5 @@
 # general settings
-name: 12S2_urban_finetune-on-full
+name: 12S2_urban_finetuning-on-full
 model_type: RealESRGANModel
 scale: 4
 num_gpu: auto
@@ -17,9 +17,11 @@ datasets:
   train:
     name: 18S2-NAIP
     type: RealESRGANPairedDataset
-    dataroot: /data/piperw/urban_set
+    dataroot: /data/piperw/full_dataset
     io_backend:
       type: disk
+
+    tile_weights: /data/piperw/tile_weights/full_dataset_weights.json    
 
     use_hflip: True
     use_rot: False
@@ -71,9 +73,11 @@ network_d:
 path:
   # use the pre-trained Real-ESRNet model
   #pretrain_network_g: None #/home/piperw/forked-Real-ESRGAN/Real-ESRGAN/experiments/pretrained_models/RealESRNet_x4plus.pth
+  pretrain_network_g: /data/piperw/Real-ESRGAN/experiments/12S2_urban_finetune-on-full/models/net_g_130000.pth 
   param_key_g: params_ema
   strict_load_g: true
   #pretrain_network_d: None #/home/piperw/forked-Real-ESRGAN/Real-ESRGAN/experiments/pretrained_models/RealESRGAN_x4plus_netD.pth
+  pretrain_network_d: /data/piperw/Real-ESRGAN/experiments/12S2_urban_finetune-on-full/models/net_d_130000.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~

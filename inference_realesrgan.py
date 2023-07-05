@@ -18,7 +18,7 @@ def main():
     """Inference demo for Real-ESRGAN.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', type=str, default='inputs', help='Input tile')
+    parser.add_argument('-i', '--input', type=str, default='inputs', help='Input path to directory containing tiles.')
     parser.add_argument('-model_path', type=str, help='Path to model weights', default='experiments/2S2_urban/models/net_g_225000.pth')
     parser.add_argument(
         '-g', '--gpu-id', type=int, default=None, help='gpu device to use (default=None) can be 0,1,2 for multi-gpu')
@@ -41,8 +41,11 @@ def main():
 
     model.eval()
 
-    input_path = '/data/piperw/inference_data/' + args.input + '/s2_condensed' 
-    paths = sorted(glob.glob(os.path.join(input_path, '*/*.png')))
+    input_path = args.input
+    paths = []
+    for tile in os.listdir(input_path):
+        paths.extend(sorted(glob.glob(os.path.join(input_path, tile, 's2_condensed', '*/*.png'))))
+    print("Number of images...", len(paths))
 
     batches_names, batch_names = [], []  # list of list of [basename, imgname]
     batches = []
@@ -67,13 +70,15 @@ def main():
             batches_names.append(batch_names)
             batch, batch_names = [], []
 
+
     extension = 'png'
     with torch.no_grad():
         with torch.cuda.amp.autocast(enabled=True):
-            for i,batch in enumerate(batches):
+
+            for i,btch in enumerate(batches):
                 try:
-                    output = model(batch)
-                    output = torch.permute(output, (0, 2, 3, 1)).squeeze()
+                    output = model(btch)
+                    output = torch.permute(output, (0, 2, 3, 1))
                 except RuntimeError as error:
                     print('Error', error)
 
@@ -84,8 +89,7 @@ def main():
                         os.makedirs(basename, exist_ok=True)
                         save_path = os.path.join(basename, f'{imgname}.{extension}')
 
-                        print("saving...", save_path)
-                        skimage.io.imsave(save_path, b.detach().numpy())
+                        skimage.io.imsave(save_path, b.detach().cpu().numpy())
 
 
 if __name__ == '__main__':
