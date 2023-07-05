@@ -1,5 +1,5 @@
 # general settings
-name: 2S2_urban_finetuned-on-full
+name: 2S2_urban
 model_type: RealESRGANModel
 scale: 4
 num_gpu: auto
@@ -99,7 +99,7 @@ train:
     milestones: [400000]
     gamma: 0.5
 
-  total_iter: 1000000
+  total_iter: 100000000
   warmup_iter: -1  # no warm up
 
   # losses

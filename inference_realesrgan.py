@@ -18,15 +18,18 @@ def main():
     """Inference demo for Real-ESRGAN.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', type=str, default='inputs', help='Input tile')
+    parser.add_argument('-i', '--input', type=str, default='inputs', help='Input path to directory containing tiles.')
     parser.add_argument('-model_path', type=str, help='Path to model weights', default='experiments/2S2_urban/models/net_g_225000.pth')
     parser.add_argument(
         '-g', '--gpu-id', type=int, default=None, help='gpu device to use (default=None) can be 0,1,2 for multi-gpu')
 
     args = parser.parse_args()
 
+    device = torch.device("cuda")
+
     # model 
     model = RRDBNet(num_in_ch=6, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
+    model = model.to(device)
     netscale = 4
 
     # determine model paths
@@ -34,12 +37,15 @@ def main():
         model_path = args.model_path
         print("loading....", model_path)
         state_dict = torch.load(model_path)
-        model.load_state_dict(state_dict['params'])
+        model.load_state_dict(state_dict['params_ema'])
 
     model.eval()
 
-    input_path = '/data/piperw/inference_data/' + args.input + '/s2_condensed' 
-    paths = sorted(glob.glob(os.path.join(input_path, '*/*.png')))
+    input_path = args.input
+    paths = []
+    for tile in os.listdir(input_path):
+        paths.extend(sorted(glob.glob(os.path.join(input_path, tile, 's2_condensed', '*/*.png'))))
+    print("Number of images...", len(paths))
 
     batches_names, batch_names = [], []  # list of list of [basename, imgname]
     batches = []
@@ -59,29 +65,30 @@ def main():
 
         batch.append(img)
         batch_names.append([basename, imgname])
-        if len(batch) == 256:
-            batches.append(torch.stack(batch))
+        if len(batch) == 64:
+            batches.append(torch.stack(batch).to(device))
             batches_names.append(batch_names)
             batch, batch_names = [], []
 
-    for i,batch in enumerate(batches):
-        try:
-            with torch.no_grad():
-                output = model(batch)
-                output = torch.permute(output, (0, 2, 3, 1)).squeeze()
-        except RuntimeError as error:
-            print('Error', error)
+    extension = 'png'
+    with torch.no_grad():
+        with torch.cuda.amp.autocast(enabled=True):
 
-        else:
-            extension = 'png'
-           
-            for j,b in enumerate(output):
-                basename, imgname = batches_names[i][j]
+            for i,btch in enumerate(batches):
+                try:
+                    output = model(btch)
+                    output = torch.permute(output, (0, 2, 3, 1))
+                except RuntimeError as error:
+                    print('Error', error)
 
-                os.makedirs(basename, exist_ok=True)
-                save_path = os.path.join(basename, f'{imgname}.{extension}')
+                else:
+                    for j,b in enumerate(output):
+                        basename, imgname = batches_names[i][j]
 
-                #skimage.io.imsave(save_path, b.detach().numpy())
+                        os.makedirs(basename, exist_ok=True)
+                        save_path = os.path.join(basename, f'{imgname}.{extension}')
+
+                        skimage.io.imsave(save_path, b.detach().cpu().numpy())
 
 
 if __name__ == '__main__':

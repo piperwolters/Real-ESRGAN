@@ -1,5 +1,5 @@
 # general settings
-name: testing
+name: 12S2_urban_finetune-on-full
 model_type: RealESRGANModel
 scale: 4
 num_gpu: auto
@@ -26,12 +26,12 @@ datasets:
 
     use_3d: False
     output_size: 128
-    n_s2_images: 2
+    n_s2_images: 12
 
     # data loader
     use_shuffle: false
     num_worker_per_gpu: 4
-    batch_size_per_gpu: 64
+    batch_size_per_gpu: 128
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
@@ -39,13 +39,13 @@ datasets:
   val:
      name: validation
      type: RealESRGANPairedDataset
-     dataroot: /data/piperw/urban_set
-     num_worker_per_gpu: 4
-     batch_size_per_gpu: 64
+     dataroot: /data/piperw/held_out_set
+     num_worker_per_gpu: 1
+     batch_size_per_gpu: 1
 
      use_3d: False
      output_size: 128
-     n_s2_images: 2
+     n_s2_images: 12
 
      use_shuffle: false
 
@@ -55,7 +55,7 @@ datasets:
 # network structures
 network_g:
   type: RRDBNet
-  num_in_ch: 6
+  num_in_ch: 36
   num_out_ch: 3
   num_feat: 64
   num_block: 23
@@ -135,7 +135,7 @@ train:
 # Uncomment these for validation
 # validation settings
 val:
-   val_freq: !!float 100
+   val_freq: !!float 5e3
    save_img: False
 
    metrics:
@@ -147,7 +147,7 @@ val:
 # logging settings
 logger:
   print_freq: 100
-  save_checkpoint_freq: !!float 100
+  save_checkpoint_freq: !!float 5e3
   use_tb_logger: true
   wandb:
     project: multisat
