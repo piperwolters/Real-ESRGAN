@@ -26,7 +26,7 @@ datasets:
 
     use_3d: False
     output_size: 128
-    n_s2_images: 2
+    n_s2_images: 18
 
     tile_weights: /data/piperw/tile_weights/urban_set_weights.json
 
@@ -47,7 +47,7 @@ datasets:
 
      use_3d: False
      output_size: 128
-     n_s2_images: 2
+     n_s2_images: 18
 
      use_shuffle: false
 
@@ -57,7 +57,7 @@ datasets:
 # network structures
 network_g:
   type: RRDBNet
-  num_in_ch: 6
+  num_in_ch: 54
   num_out_ch: 3
   num_feat: 64
   num_block: 23
@@ -73,7 +73,7 @@ network_d:
 path:
   # use the pre-trained Real-ESRNet model
   #pretrain_network_g: None #/home/piperw/forked-Real-ESRGAN/Real-ESRGAN/experiments/pretrained_models/RealESRNet_x4plus.pth
-  pretrain_network_g: /data/piperw/Real-ESRGAN/experiments/satlas-explorer/esrgan_orig_2S2.pth
+  pretrain_network_g: /data/piperw/Real-ESRGAN/experiments/satlas-explorer/esrgan_orig_18S2.pth
   param_key_g: params_ema
   strict_load_g: true
   #pretrain_network_d: None #/home/piperw/forked-Real-ESRGAN/Real-ESRGAN/experiments/pretrained_models/RealESRGAN_x4plus_netD.pth
