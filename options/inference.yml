@@ -1,5 +1,5 @@
 # general settings
-name: 2S2_urban
+name: inference
 model_type: RealESRGANModel
 scale: 4
 num_gpu: auto
@@ -41,7 +41,7 @@ datasets:
   val:
      name: validation
      type: RealESRGANPairedDataset
-     dataroot: /data/piperw/inference_data/1344_3169
+     dataroot: /data/piperw/held_out_set
      num_worker_per_gpu: 1
      batch_size_per_gpu: 1
 
@@ -73,13 +73,13 @@ network_d:
 path:
   # use the pre-trained Real-ESRNet model
   #pretrain_network_g: None #/home/piperw/forked-Real-ESRGAN/Real-ESRGAN/experiments/pretrained_models/RealESRNet_x4plus.pth
+  pretrain_network_g: /data/piperw/Real-ESRGAN/experiments/satlas-explorer/esrgan_orig_2S2.pth
   param_key_g: params_ema
   strict_load_g: true
   #pretrain_network_d: None #/home/piperw/forked-Real-ESRGAN/Real-ESRGAN/experiments/pretrained_models/RealESRGAN_x4plus_netD.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~
-  visualization: /data/piperw/esrgan_inference/
 
 # training settings
 train:
@@ -140,7 +140,6 @@ train:
 val:
    val_freq: !!float 1
    save_img: True
-   suffix: null
 
    metrics:
      psnr: # metric name
