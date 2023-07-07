@@ -1,5 +1,5 @@
 # general settings
-name: esrgan_2S2_urban_larger2-finetune-on-full
+name: 6S2_urban_finetuning-on-full
 model_type: RealESRGANModel
 scale: 4
 num_gpu: auto
@@ -28,12 +28,12 @@ datasets:
 
     use_3d: False
     output_size: 128
-    n_s2_images: 2
+    n_s2_images: 6
 
     # data loader
     use_shuffle: false
-    num_worker_per_gpu: 4
-    batch_size_per_gpu: 32
+    num_worker_per_gpu: 8
+    batch_size_per_gpu: 128
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
@@ -47,7 +47,7 @@ datasets:
 
      use_3d: False
      output_size: 128
-     n_s2_images: 2
+     n_s2_images: 6
 
      use_shuffle: false
 
@@ -56,10 +56,10 @@ datasets:
 
 # network structures
 network_g:
-  type: RRDBNet4Blocks
-  num_in_ch: 6
+  type: RRDBNet
+  num_in_ch: 18
   num_out_ch: 3
-  num_feat: 256
+  num_feat: 64
   num_block: 23
   num_grow_ch: 32
 
@@ -73,11 +73,11 @@ network_d:
 path:
   # use the pre-trained Real-ESRNet model
   #pretrain_network_g: None #/home/piperw/forked-Real-ESRGAN/Real-ESRGAN/experiments/pretrained_models/RealESRNet_x4plus.pth
-  pretrain_network_g: /data/piperw/Real-ESRGAN/experiments/esrgan_2S2_urban_larger2/models/net_g_430000.pth 
+  pretrain_network_g: /data/piperw/Real-ESRGAN/experiments/6S2_urban_finetuned-on-full/models/net_g_285000.pth 
   param_key_g: params_ema
   strict_load_g: true
   #pretrain_network_d: None #/home/piperw/forked-Real-ESRGAN/Real-ESRGAN/experiments/pretrained_models/RealESRGAN_x4plus_netD.pth
-  pretrain_network_d: /data/piperw/Real-ESRGAN/experiments/esrgan_2S2_urban_larger2/models/net_d_430000.pth
+  pretrain_network_d: /data/piperw/Real-ESRGAN/experiments/6S2_urban_finetuned-on-full/models/net_d_285000.pth
   param_key_d: params
   strict_load_d: true
   resume_state: ~
