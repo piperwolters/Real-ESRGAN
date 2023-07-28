@@ -1,4 +1,5 @@
 import os
+import cv2
 import glob
 import torch
 import random
@@ -77,7 +78,8 @@ class RealESRGANPairedDataset(data.Dataset):
         self.mean = opt['mean'] if 'mean' in opt else None
         self.std = opt['std'] if 'std' in opt else None
 
-        self.datatype = 's2' 
+        self.datatype = opt['datatype'] if 'datatype' in opt else 's2'
+
         self.max_tiles = -1 #max_tiles
         specify_val = True
 
@@ -86,9 +88,13 @@ class RealESRGANPairedDataset(data.Dataset):
         dataroot = opt['dataroot']
         self.output_size = int(opt['output_size'])
         self.n_s2_images = int(opt['n_s2_images'])
+        self.scale = int(opt['scale'])  # dimension of output will be X times larger than the input
 
-        # Paths to the imagery.
-        self.s2_path = os.path.join(dataroot, 's2_condensed')
+        # Paths to Sentinel-2 imagery.
+        if self.datatype == 's2':
+            self.s2_path = os.path.join(dataroot, 's2_condensed')
+
+        # Paths to NAIP imagery.
         if self.output_size == 512:
             self.naip_path = os.path.join(dataroot, 'naip')
         elif self.output_size == 256:
@@ -152,10 +158,11 @@ class RealESRGANPairedDataset(data.Dataset):
             for n in self.naip_chips:
 
                 # If this is the train dataset, ignore the subset of images that we want to use for validation.
-                if self.split == 'train' and self.specify_val and (naip_path in self.val_fps):
+                if self.split == 'train' and specify_val and (n in self.val_fps):
+                    print("split == train and n in val_fps")
                     continue
                 # If this is the validation dataset, ignore any images that aren't in the subset.
-                if self.split == 'val' and self.specify_val and not (naip_path in self.val_fps):
+                if self.split == 'val' and specify_val and not (n in self.val_fps):
                     continue
 
                 self.datapoints.append(n)
@@ -181,7 +188,6 @@ class RealESRGANPairedDataset(data.Dataset):
                 weights.append(tile_weights[chip])
 
         print('using tile_weight_sampler, min={} max={} mean={}'.format(min(weights), max(weights), np.mean(weights)))
-        #return torch.utils.data.WeightedRandomSampler(weights, len(self.datapoints))
         return CustomWeightedRandomSampler(weights, len(self.datapoints))
 
     def __getitem__(self, index):
@@ -290,12 +296,13 @@ class RealESRGANPairedDataset(data.Dataset):
             naip_chip = skimage.io.imread(naip_path)
 
             # Create the downsampled version on-the-fly.
+            self.downsample_res = int(self.output_size / self.scale)
             downsampled_naip = cv2.resize(naip_chip, dsize=(self.downsample_res,self.downsample_res), interpolation=cv2.INTER_CUBIC)
-            downsampled_naip = cv2.resize(downsampled_naip, dsize=(self.output_size, self.output_size), interpolation=cv2.INTER_CUBIC)
 
-            [img_SR, img_HR] = Util.transform_augment([downsampled_naip, naip_chip], split=self.split, min_max=(-1, 1))
+            img_SR = totensor(downsampled_naip)
+            img_HR = totensor(naip_chip)
 
-            return {'HR': img_HR, 'SR': img_SR, 'Index': index}
+            return {'gt': img_HR, 'lq': img_SR, 'Index': index}
 
         else:
             print("Unsupported type...")
